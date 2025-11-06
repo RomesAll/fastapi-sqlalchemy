@@ -1,22 +1,22 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Enum, text
+from sqlalchemy import ForeignKey, text
 from typing import Annotated
 from database import Base
-import datetime
+import datetime, enum
 
 id_pk = Annotated[int, mapped_column(primary_key=True)]
 created_at = Annotated[datetime.datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
 updated_at = Annotated[datetime.datetime, 
                        mapped_column(server_default=text("TIMEZONE('utc', now())"),
-                                     onupdate=datetime.datetime.now(datetime.timezone.utc()))]
+                                     onupdate=datetime.datetime.now(datetime.timezone.utc))]
 
-class Workload(Enum):
+class Workload(enum.Enum):
     parttime = "parttime"
     fulltime = "fulltime"
 
 class WorkersORM(Base):
     __tablename__ = "workers"
-    id: Mapped[id_pk]
+    id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
     resumes: Mapped[list["ResumesORM"]] = relationship(back_populates="workers", secondary="vacancies_replies")
 
