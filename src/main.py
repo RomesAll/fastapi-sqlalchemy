@@ -1,6 +1,7 @@
 from database import Base, async_engine, engine, session_factory
 from models import *
 from sqlalchemy import Integer, and_, cast, insert, inspect, or_, select, text, update, func
+from sqlalchemy.orm import aliased
 import asyncio
 
 async def setup_db():
@@ -69,12 +70,54 @@ async def select_resumes_avg_compensation(like_language: str = "Python"):
         result = avg_compensation.all()
         print(result)
 
+async def join_cte_subquery_window_func():
+    """
+    WITH helper2 AS (
+        SELECT *, compensation-avg_workload_compensation AS compensation_diff
+        FROM 
+        (SELECT
+            w.id,
+            w.username,
+            r.compensation,
+            r.workload,
+            avg(r.compensation) OVER (PARTITION BY workload)::int AS avg_workload_compensation
+        FROM resumes r
+        JOIN workers w ON r.worker_id = w.id) helper1
+    )
+    SELECT * FROM helper2
+    ORDER BY compensation_diff DESC;
+    """
+    async with session_factory() as session:
+        r = aliased(ResumesORM)
+        w = aliased(WorkersORM)
+        subq = (
+            select(r, w, func.avg(r.compensation).over(partition_by=r.workload).cast(Integer).label("avg_workload_compensation"))
+            .join(r, r.worker_id == w.id).subquery("helper1")
+        )
+        cte = (
+            select(
+                subq.c.worker_id,
+                subq.c.username,
+                subq.c.compensation,
+                subq.c.workload,
+                subq.c.avg_workload_compensation,
+                (subq.c.compensation - subq.c.avg_workload_compensation).label("compensation_diff")
+            )
+            .cte("helper2")
+        )
+        query = (
+            select(cte)
+            .order_by(cte.c.compensation_diff.desc())
+        )
+        result_query = await session.execute(query)
+        result = result_query.all()
+        print(result)
 
 async def main():
     await setup_db()
     await insert_workers()
     await insert_resumes()
 
-    await asyncio.gather(select_resumes_avg_compensation())
+    await asyncio.gather(join_cte_subquery_window_func())
 
 asyncio.run(main())
