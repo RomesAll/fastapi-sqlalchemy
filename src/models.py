@@ -5,10 +5,10 @@ from database import Base
 import datetime, enum
 
 id_pk = Annotated[int, mapped_column(primary_key=True)]
-created_at = Annotated[datetime.datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
+created_at = Annotated[datetime.datetime, 
+                       mapped_column(server_default=text("TIMEZONE('utc', now())"))]
 updated_at = Annotated[datetime.datetime, 
-                       mapped_column(server_default=text("TIMEZONE('utc', now())"),
-                                     onupdate=datetime.datetime.now(datetime.timezone.utc))]
+                       mapped_column(server_default=text("TIMEZONE('utc', now())"), onupdate=datetime.datetime.utcnow)]
 
 class Workload(enum.Enum):
     parttime = "parttime"

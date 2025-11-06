@@ -1,6 +1,6 @@
 from database import Base, async_engine, engine, session_factory
 from models import *
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 import asyncio
 
 
@@ -26,9 +26,20 @@ async def select_workers():
         workers = result.scalars().all()
         print(workers)
 
+async def update_workers(id: int = 2, username: str = 'Jack_new'):
+    async with session_factory() as session:
+        stmt = update(WorkersORM).where(WorkersORM.id == id).values(username=username)
+        await session.execute(stmt)
+        await session.commit()
+        # workers = await session.get(WorkersORM, id)
+        # workers.username = username
+        # await session.commit()
+
+
+
 async def main():
     await setup_db()
     await insert_workers()
-    await asyncio.gather(select_workers())
+    await asyncio.gather(select_workers(), update_workers())
 
 asyncio.run(main())
