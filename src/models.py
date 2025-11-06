@@ -18,7 +18,10 @@ class WorkersORM(Base):
     __tablename__ = "workers"
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str]
-    resumes: Mapped[list["ResumesORM"]] = relationship(back_populates="workers", secondary="vacancies_replies")
+    created: Mapped[created_at]
+    updated: Mapped[updated_at]
+
+    resumes: Mapped[list["ResumesORM"]] = relationship(back_populates="workers")
 
 class ResumesORM(Base):
     __tablename__ = "resumes"
@@ -27,25 +30,28 @@ class ResumesORM(Base):
     compensation: Mapped[None | int]
     workload: Mapped[Workload]
     worker_id: Mapped[int] = mapped_column(ForeignKey("workers.id", ondelete="CASCADE"))
-    workers: Mapped["WorkersORM"] = relationship(back_populates="resumes")
-    vacancies: Mapped[list["VacanciesRepliesOrm"]] = relationship(back_populates="resumes", secondary="vacancies_replies")
+    created: Mapped[created_at]
+    updated: Mapped[updated_at]
 
+    workers: Mapped["WorkersORM"] = relationship(back_populates="resumes")
+    vacancies_replied: Mapped[list["VacanciesORM"]] = relationship(
+        back_populates="resumes_replied",
+        secondary="vacancies_replies",
+    )
 
 class VacanciesORM(Base):
     __tablename__ = "vacancies"
     id: Mapped[id_pk]
     title: Mapped[str]
     compensation: Mapped[None | int]
-    resumes: Mapped[list["ResumesORM"]] = relationship(back_populates="vacancies")
+
+    resumes_replied: Mapped[list["ResumesORM"]] = relationship(
+        back_populates="vacancies_replied",
+        secondary="vacancies_replies",
+    )
 
 class VacanciesRepliesOrm(Base):
     __tablename__ = "vacancies_replies"
-    resume_id: Mapped[int] = mapped_column(
-        ForeignKey("resumes.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    vacancy_id: Mapped[int] = mapped_column(
-        ForeignKey("vacancies.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
+    resume_id: Mapped[int] = mapped_column(ForeignKey("resumes.id", ondelete="CASCADE"), primary_key=True)
+    vacancy_id: Mapped[int] = mapped_column(ForeignKey("vacancies.id", ondelete="CASCADE"), primary_key=True)
     cover_letter: Mapped[None | str]
